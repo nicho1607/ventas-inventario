@@ -1,0 +1,154 @@
+// Dashboard de Ventas e Inventario
+// Convención: todos los montos se guardan en CENTAVOS (Int). $12.50 → 1250
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────── ENUMS ───────────────
+
+enum PaymentMethod {
+  CASH     // Efectivo
+  TRANSFER // Transferencia
+  CARD     // Tarjeta
+}
+
+enum SaleStatus {
+  COMPLETED
+  VOIDED // Anulada (devuelve stock)
+}
+
+enum InventoryMovementType {
+  INITIAL    // Stock inicial al crear producto
+  PURCHASE   // Entrada por compra a proveedor
+  SALE       // Salida por venta
+  ADJUSTMENT // Ajuste manual (merma, conteo físico)
+  RETURN     // Devolución de cliente
+  VOID       // Reversa por venta anulada
+}
+
+// ─────────────── CONFIGURACIÓN ───────────────
+
+// Fila única (id = 1): datos de la tienda que salen en la app y en la tirilla
+model StoreSettings {
+  id            Int      @id @default(1)
+  name          String   @default("Mi Tienda")
+  legalId       String? // NIT o cédula
+  address       String?
+  phone         String?
+  receiptFooter String?  @default("¡Gracias por su compra!")
+  updatedAt     DateTime @updatedAt
+}
+
+// ─────────────── CATÁLOGO ───────────────
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String? // hex para chips en POS (#22c55e)
+  sortOrder Int       @default(0)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id         String    @id @default(cuid())
+  sku        String?   @unique // código interno o de barras
+  name       String
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  costPrice Int // centavos — precio de compra
+  salePrice Int // centavos — precio de venta
+  stock     Int @default(0)
+  minStock  Int @default(5) // umbral de alerta
+
+  isActive Boolean @default(true) // soft delete: nunca borrar si tiene ventas
+  imageUrl String?
+
+  saleItems     SaleItem[]
+  inventoryLogs InventoryLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive, name])
+}
+
+// ─────────────── VENTAS ───────────────
+
+model Sale {
+  id              String  @id @default(cuid())
+  folio           Int     @unique @default(autoincrement()) // número visible: #0001
+  clientRequestId String? @unique // idempotencia: un reintento no duplica la venta
+
+  subtotal  Int // centavos
+  discount  Int @default(0)
+  total     Int
+  totalCost Int // suma de costos snapshot → ganancia = total - totalCost
+
+  paymentMethod PaymentMethod
+  amountPaid    Int? // solo efectivo
+  change        Int? // cambio entregado
+
+  status     SaleStatus @default(COMPLETED)
+  voidedAt   DateTime?
+  voidReason String?
+  note       String?
+
+  items         SaleItem[]
+  inventoryLogs InventoryLog[]
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  // Snapshot inmutable al momento de la venta
+  productName String
+  unitPrice   Int
+  unitCost    Int
+  quantity    Int
+  lineTotal   Int // unitPrice * quantity
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+// ─────────────── INVENTARIO ───────────────
+
+model InventoryLog {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  type        InventoryMovementType
+  quantity    Int // con signo: +10 entrada, -3 salida
+  stockBefore Int
+  stockAfter  Int
+  unitCost    Int? // costo de la compra (para PURCHASE)
+  reason      String?
+
+  saleId String?
+  sale   Sale?   @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([type, createdAt])
+}

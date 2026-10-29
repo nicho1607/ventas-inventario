@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────── Tokens ───────────────
+   Verde tienda + amarillo de aviso de precio sobre gris frío.
+   Rojo/ámbar reservados para estados de stock. */
+:root {
+  --bg: #f4f6f3;
+  --surface: #ffffff;
+  --surface-2: #e9ede7;
+  --ink: #16241d;
+  --ink-2: #4a5a51;
+  --ink-3: #75847b;
+  --line: #d6ddd5;
+
+  --brand: #0e6b4e;
+  --brand-ink: #ffffff;
+  --brand-soft: #dcefe6;
+  --mark: #f2c230; /* amarillo: total, selección */
+  --mark-ink: #2a2105;
+
+  --ok: #1f7a4d;
+  --warn: #a15c07;
+  --warn-soft: #fbefd9;
+  --danger: #b42318;
+  --danger-soft: #fbe4e1;
+
+  --receipt: #fffdf7;
+  --chart: #0e6b4e;
+  --chart-muted: #b9c9bf;
+}
+
+.dark {
+  --bg: #101814;
+  --surface: #17221c;
+  --surface-2: #1f2c25;
+  --ink: #e6ede8;
+  --ink-2: #a9b8af;
+  --ink-3: #7d8d84;
+  --line: #2c3b33;
+
+  --brand: #35a57c;
+  --brand-ink: #06130d;
+  --brand-soft: #1b3a2d;
+  --mark: #f2c230;
+  --mark-ink: #2a2105;
+
+  --ok: #4cc38a;
+  --warn: #f0a540;
+  --warn-soft: #3a2a12;
+  --danger: #f2786b;
+  --danger-soft: #3d1c18;
+
+  --receipt: #1c2621;
+  --chart: #4cc38a;
+  --chart-muted: #355245;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-mark: var(--mark);
+  --color-mark-ink: var(--mark-ink);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-receipt: var(--receipt);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-archivo);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Cifras: Archivo semicondensada, dígitos de ancho fijo */
+.figure {
+  font-family: var(--font-archivo);
+  font-variation-settings: "wdth" 82;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Filas de chips que se deslizan de lado: sin barra de scroll visible */
+.scroll-row {
+  scrollbar-width: none;
+}
+.scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Borde dentado de la tirilla de caja */
+.receipt-edge {
+  --tooth: 10px;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--tooth) 51% repeat-x,
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth) / 2 + 1px) no-repeat;
+}
+
+:focus-visible {
+  outline: 3px solid var(--mark);
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: rgb(10 20 15 / 0.55);
+}
+
+/* Impresión: solo la tirilla, en blanco y negro, ancho de impresora térmica de 80 mm */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+    color: #000 !important;
+    border-color: #000 !important;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 74mm;
+    max-width: none;
+    padding: 0;
+    background: #fff !important;
+    box-shadow: none !important;
+    mask: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
