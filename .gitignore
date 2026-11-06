@@ -42,3 +42,9 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# local AI agent skill folders (tooling, not part of the app)
+/.agents/
+/.claude/
+/.windsurf/
+skills-lock.json
